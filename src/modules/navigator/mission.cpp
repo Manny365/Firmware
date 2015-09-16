@@ -70,8 +70,8 @@ Mission::Mission(Navigator *navigator, const char *name) :
 	_param_dist_1wp(this, "MIS_DIST_1WP", false),
 	_param_altmode(this, "MIS_ALTMODE", false),
 	_param_yawmode(this, "MIS_YAWMODE", false),
-	_onboard_mission({0}),
-	_offboard_mission({0}),
+	_onboard_mission{},
+	_offboard_mission{},
 	_current_onboard_mission_index(-1),
 	_current_offboard_mission_index(-1),
 	_need_takeoff(true),
@@ -110,31 +110,28 @@ Mission::on_inactive()
 			update_offboard_mission();
 		}
 
-		/* check if the home position became valid in the meantime */
-		if ((_mission_type == MISSION_TYPE_NONE || _mission_type == MISSION_TYPE_OFFBOARD) &&
-			!_home_inited && _navigator->home_position_valid()) {
+	} else {
 
-			dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+		/* load missions from storage */
+		mission_s mission_state;
 
-			_navigator->get_mission_result()->valid = _missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
-					dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
-					_navigator->get_home_position()->alt, _navigator->home_position_valid(),
-					_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-					_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+		dm_lock(DM_KEY_MISSION_STATE);
 
-			_navigator->increment_mission_instance_count();
-			_navigator->set_mission_result_updated();
+		/* read current state */
+		int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
 
-			_home_inited = true;
+		dm_unlock(DM_KEY_MISSION_STATE);
+
+		if (read_res == sizeof(mission_s)) {
+			_offboard_mission.dataman_id = mission_state.dataman_id;
+			_offboard_mission.count = mission_state.count;
+			_current_offboard_mission_index = mission_state.current_seq;
 		}
 
-	} else {
-		/* read mission topics on initialization */
 		_inited = true;
-
-		update_onboard_mission();
-		update_offboard_mission();
 	}
+
+	check_mission_valid();
 
 	/* require takeoff after non-loiter or landing */
 	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_vstatus()->condition_landed) {
@@ -151,6 +148,8 @@ Mission::on_activation()
 void
 Mission::on_active()
 {
+	check_mission_valid();
+
 	/* check if anything has changed */
 	bool onboard_updated = false;
 	orb_check(_navigator->get_onboard_mission_sub(), &onboard_updated);
@@ -272,6 +271,8 @@ Mission::update_offboard_mission()
 		_offboard_mission.count = 0;
 		_offboard_mission.current_seq = 0;
 		_current_offboard_mission_index = 0;
+
+		warnx("mission check failed");
 	}
 
 	set_current_offboard_mission_item();
@@ -623,26 +624,29 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 {
 	/* select onboard/offboard mission */
 	int *mission_index_ptr;
-	struct mission_s *mission;
 	dm_item_t dm_item;
-	int mission_index_next;
+
+	struct mission_s *mission = (onboard) ? &_onboard_mission : &_offboard_mission;
+	int mission_index_next = (onboard) ? _current_onboard_mission_index : _current_offboard_mission_index;
+
+	/* do not work on empty missions */
+	if (mission->count == 0) {
+		return false;
+	}
+
+	/* move to next item if there is one */
+	if (mission_index_next < ((int)mission->count - 1)) {
+		mission_index_next++;
+	}
 
 	if (onboard) {
 		/* onboard mission */
-		mission_index_next = _current_onboard_mission_index + 1;
 		mission_index_ptr = is_current ? &_current_onboard_mission_index : &mission_index_next;
-
-		mission = &_onboard_mission;
-
 		dm_item = DM_KEY_WAYPOINTS_ONBOARD;
 
 	} else {
 		/* offboard mission */
-		mission_index_next = _current_offboard_mission_index + 1;
 		mission_index_ptr = is_current ? &_current_offboard_mission_index : &mission_index_next;
-
-		mission = &_offboard_mission;
-
 		dm_item = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
 	}
 
@@ -652,6 +656,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 
 		if (*mission_index_ptr < 0 || *mission_index_ptr >= (int)mission->count) {
 			/* mission item index out of bounds */
+			mavlink_and_console_log_critical(_navigator->get_mavlink_fd(), "[wpm] err: index: %d, max: %d", *mission_index_ptr, (int)mission->count);
 			return false;
 		}
 
@@ -663,7 +668,7 @@ Mission::read_mission_item(bool onboard, bool is_current, struct mission_item_s 
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			mavlink_log_critical(_navigator->get_mavlink_fd(),
+			mavlink_and_console_log_critical(_navigator->get_mavlink_fd(),
 			                     "ERROR waypoint could not be read");
 			return false;
 		}
@@ -794,4 +799,27 @@ Mission::set_mission_finished()
 {
 	_navigator->get_mission_result()->finished = true;
 	_navigator->set_mission_result_updated();
+}
+
+bool
+Mission::check_mission_valid()
+{
+	/* check if the home position became valid in the meantime */
+	if (!_home_inited && _navigator->home_position_valid()) {
+
+		dm_item_t dm_current = DM_KEY_WAYPOINTS_OFFBOARD(_offboard_mission.dataman_id);
+
+		_navigator->get_mission_result()->valid = _missionFeasiblityChecker.checkMissionFeasible(_navigator->get_mavlink_fd(), _navigator->get_vstatus()->is_rotary_wing,
+				dm_current, (size_t) _offboard_mission.count, _navigator->get_geofence(),
+				_navigator->get_home_position()->alt, _navigator->home_position_valid(),
+				_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				_param_dist_1wp.get(), _navigator->get_mission_result()->warning);
+
+		_navigator->increment_mission_instance_count();
+		_navigator->set_mission_result_updated();
+
+		_home_inited = true;
+	}
+
+	return _navigator->get_mission_result()->valid;
 }
