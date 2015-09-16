@@ -46,8 +46,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <px4_config.h>
-#include <sys/prctl.h>
-#include <termios.h>
 #include <math.h>
 #include <float.h>
 #include <uORB/uORB.h>
@@ -118,10 +116,10 @@ static inline int max(int val1, int val2)
 static void usage(const char *reason)
 {
 	if (reason) {
-		fprintf(stderr, "%s\n", reason);
+		PX4_INFO("%s\n", reason);
 	}
 
-	fprintf(stderr, "usage: position_estimator_inav {start|stop|status} [-v]\n\n");
+	PX4_INFO("usage: position_estimator_inav {start|stop|status} [-v]\n\n");
 	return;
 }
 
@@ -187,11 +185,11 @@ int position_estimator_inav_main(int argc, char *argv[])
 	return 1;
 }
 
+#ifdef INAV_DEBUG
 static void write_debug_log(const char *msg, float dt, float x_est[2], float y_est[2], float z_est[2], float x_est_prev[2], float y_est_prev[2], float z_est_prev[2],
 	float acc[3], float corr_gps[3][2], float w_xy_gps_p, float w_xy_gps_v, float corr_mocap[3][1], float w_mocap_p,
 	float corr_vision[3][2], float w_xy_vision_p, float w_z_vision_p, float w_xy_vision_v)
 {
-	return;
 	FILE *f = fopen(PX4_ROOTFSDIR"/fs/microsd/inav.log", "a");
 
 	if (f) {
@@ -216,6 +214,9 @@ static void write_debug_log(const char *msg, float dt, float x_est[2], float y_e
 	fsync(fileno(f));
 	fclose(f);
 }
+#else
+#define write_debug_log(...) 
+#endif
 
 /****************************************************************************
  * main
@@ -403,7 +404,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
-						if (isfinite(sensor.baro_alt_meter)) {
+						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
 							baro_offset += sensor.baro_alt_meter;
 							baro_init_cnt++;
 						}

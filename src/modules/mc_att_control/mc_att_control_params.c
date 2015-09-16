@@ -36,8 +36,8 @@
  * Parameters for multicopter attitude controller.
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Lorenz Meier <lorenz@px4.io>
+ * @author Anton Babushkin <anton@px4.io>
  */
 
 #include <systemlib/param/param.h>
@@ -60,7 +60,7 @@ PARAM_DEFINE_FLOAT(MC_ROLL_P, 6.5f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.12f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
 
 /**
  * Roll rate I gain
@@ -111,7 +111,7 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 6.5f);
  * @min 0.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.12f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
 
 /**
  * Pitch rate I gain
@@ -215,7 +215,7 @@ PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 360.0f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 220.0f);
 
 /**
  * Max pitch rate
@@ -227,19 +227,21 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 360.0f);
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 360.0f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
 
 /**
  * Max yaw rate
  *
- * Limit for yaw rate, has effect for large rotations in autonomous mode, to avoid large control output and mixer saturation.
+ * Limit for yaw rate, has effect for large rotations in autonomous mode,
+ * to avoid large control output and mixer saturation. A value of significantly
+ * over 60 degrees per second can already lead to mixer saturation.
  *
  * @unit deg/s
  * @min 0.0
  * @max 360.0
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 120.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 60.0f);
 
 /**
  * Max acro roll rate

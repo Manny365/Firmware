@@ -80,10 +80,6 @@
 #	to the directory 'build' under the directory containing the
 #	parent Makefile.
 #
-# ROMFS_ROOT:
-#	If set to the path to a directory, a ROMFS image will be generated
-#	containing the files under the directory and linked into the final
-#	image.
 #
 # MODULE_SEARCH_DIRS:
 #	Extra directories to search first for MODULES before looking in the
@@ -109,8 +105,6 @@ $(info %  PX4_BASE            = $(PX4_BASE))
 ifneq ($(words $(PX4_BASE)),1)
 $(error Cannot build when the PX4_BASE path contains one or more space characters.)
 endif
-
-$(info %  GIT_DESC            = $(GIT_DESC))
 
 #
 # Set a default target so that included makefiles or errors here don't
@@ -186,6 +180,12 @@ EXTRA_CLEANS		 =
 INCLUDE_DIRS		+= $(PX4_MODULE_SRC)drivers/boards/$(BOARD)
 
 ################################################################################
+# External library includes
+################################################################################
+
+INCLUDE_DIRS		+= $(PX4_BASE)src/lib/eigen/
+
+################################################################################
 # OS specific libraries and paths
 ################################################################################
 
@@ -230,7 +230,7 @@ $(MODULE_OBJS):		workdir = $(@D)
 $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
 	$(Q) $(MKDIR) -p $(workdir)
 	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
-		-C $(workdir) \
+		--no-print-directory -C $(workdir) \
 		MODULE_WORK_DIR=$(workdir) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
@@ -290,7 +290,7 @@ $(LIBRARY_LIBS):	workdir = $(@D)
 $(LIBRARY_LIBS):	$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
 	$(Q) $(MKDIR) -p $(workdir)
 	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)library.mk \
-		-C $(workdir) \
+		--no-print-directory -C $(workdir) \
 		LIBRARY_WORK_DIR=$(workdir) \
 		LIBRARY_LIB=$@ \
 		LIBRARY_MK=$(mkfile) \

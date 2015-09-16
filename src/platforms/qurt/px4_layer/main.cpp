@@ -32,7 +32,7 @@
  ****************************************************************************/
 /**
  * @file main.cpp
- * Basic shell to execute builtin "apps" 
+ * Basic shell to execute builtin "apps"
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
@@ -56,6 +56,8 @@ static px4_task_t g_dspal_task = -1;
 __BEGIN_DECLS
 // The commands to run are specified in a target file: commands_<target>.c
 extern const char *get_commands(void);
+// Enable external library hook
+void qurt_external_hook(void) __attribute__((weak));
 __END_DECLS
 
 static void run_cmd(map<string,px4_main_t> &apps, const vector<string> &appargs) {
@@ -100,11 +102,15 @@ static void process_commands(map<string,px4_main_t> &apps, const char *cmds)
 	// This is added because it is a parameter used by commander, yet created by mavlink.  Since mavlink is not
         // running on QURT, we need to manually define it so it is available to commander.  "2" is for quadrotor.
 
-	PARAM_DEFINE_INT32(MAV_TYPE,2); 
+    // Following is hack to prevent duplicate parameter definition error in param parser
+    /**
+     * @board QuRT_App
+     */
+	PARAM_DEFINE_INT32(MAV_TYPE,2);
 
 	// Eat leading whitespace
 	eat_whitespace(b, i);
-	
+
 
 	for(;;) {
 		// End of command line
@@ -152,20 +158,20 @@ __END_DECLS
 
 int dspal_entry( int argc, char* argv[] )
 {
-	//const char *argv[2] = { "dspal_client", NULL };
-	//int argc = 1;
-
 	PX4_INFO("In main\n");
 	map<string,px4_main_t> apps;
 	init_app_map(apps);
 	px4::init_once();
 	px4::init(argc, (char **)argv, "mainapp");
 	process_commands(apps, get_commands());
-        for( ;; )
-        {
-           volatile int x = 0;
-           ++x;
-        }
+	usleep( 1000000 ); // give time for all commands to execute before starting external function
+	if(qurt_external_hook)
+	{
+		qurt_external_hook();
+	}
+	for( ;; ){
+		usleep( 1000000 );
+	}
         return 0;
 }
 

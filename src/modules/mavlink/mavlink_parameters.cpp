@@ -159,9 +159,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				/* Copy values from msg to uorb using the parameter_rc_channel_index as index */
 				size_t i = map_rc.parameter_rc_channel_index;
 				_rc_param_map.param_index[i] = map_rc.param_index;
-				strncpy(&(_rc_param_map.param_id[i][0]), map_rc.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+				strncpy(&(_rc_param_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]), map_rc.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 				/* enforce null termination */
-				_rc_param_map.param_id[i][MAVLINK_MSG_PARAM_MAP_RC_FIELD_PARAM_ID_LEN] = '\0';
+				_rc_param_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1) + rc_parameter_map_s::PARAM_ID_LEN] = '\0';
 				_rc_param_map.scale[i] = map_rc.scale;
 				_rc_param_map.value0[i] = map_rc.param_value0;
 				_rc_param_map.value_min[i] = map_rc.param_value_min;
@@ -193,7 +193,7 @@ void
 MavlinkParametersManager::send(const hrt_abstime t)
 {
 	/* send all parameters if requested, but only after the system has booted */
-	if (_send_all_index >= 0 && t > 4 * 1000 * 1000) {
+	if (_send_all_index >= 0 && _mavlink->boot_complete()) {
 
 		/* skip if no space is available */
 		if (_mavlink->get_free_tx_buf() < get_size()) {
@@ -215,6 +215,10 @@ MavlinkParametersManager::send(const hrt_abstime t)
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
 			_send_all_index = -1;
 		}
+	} else if (_send_all_index == 0 && hrt_absolute_time() > 20 * 1000 * 1000) {
+		/* the boot did not seem to ever complete, warn user and set boot complete */
+		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
+		_mavlink->set_boot_complete();
 	}
 }
 

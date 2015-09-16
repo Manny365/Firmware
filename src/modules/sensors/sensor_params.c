@@ -680,7 +680,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit radians
+ * @unit degrees
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
@@ -691,7 +691,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the X (Roll) axis It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit radians
+ * @unit degrees
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
@@ -702,7 +702,7 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
- * @unit radians
+ * @unit degrees
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
@@ -1887,7 +1887,7 @@ PARAM_DEFINE_INT32(RC_TH_USER, 1);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
+PARAM_DEFINE_INT32(RC_MAP_ROLL, 0);
 
 /**
  * Pitch control channel mapping.
@@ -1900,7 +1900,7 @@ PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_PITCH, 2);
+PARAM_DEFINE_INT32(RC_MAP_PITCH, 0);
 
 /**
  * Failsafe channel mapping.
@@ -1927,7 +1927,7 @@ PARAM_DEFINE_INT32(RC_MAP_FAILSAFE, 0);  //Default to throttle function
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 3);
+PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 0);
 
 /**
  * Yaw control channel mapping.
@@ -1940,7 +1940,7 @@ PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 3);
  * @max 18
  * @group Radio Calibration
  */
-PARAM_DEFINE_INT32(RC_MAP_YAW, 4);
+PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
 
 /**
  * Mode switch channel mapping.
@@ -2273,7 +2273,7 @@ PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
  * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
  *
- * Set to 1000 for default or 900 to increase servo travel
+ * Set to 1000 for industry default or 900 to increase servo travel.
  *
  * @min 800
  * @max 1400
@@ -2289,7 +2289,7 @@ PARAM_DEFINE_INT32(PWM_MIN, 1000);
  * REBOOT IN ORDER TO APPLY THE CHANGES. COMPLETELY POWER-CYCLE
  * THE SYSTEM TO PUT CHANGES INTO EFFECT.
  *
- * Set to 2000 for default or 2100 to increase servo travel
+ * Set to 2000 for industry default or 2100 to increase servo travel.
  *
  * @min 1600
  * @max 2200

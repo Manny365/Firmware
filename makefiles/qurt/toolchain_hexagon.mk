@@ -37,9 +37,9 @@
 
 # Toolchain commands. Normally only used inside this file.
 #
-HEXAGON_TOOLS_ROOT	 = /opt/6.4.03
+HEXAGON_TOOLS_ROOT	 ?= /opt/6.4.03
 #HEXAGON_TOOLS_ROOT	 = /opt/6.4.05
-HEXAGON_SDK_ROOT	 = /opt/Hexagon_SDK/2.0
+HEXAGON_SDK_ROOT	 ?= /opt/Hexagon_SDK/2.0
 V_ARCH			 = v5
 CROSSDEV		 = hexagon-
 HEXAGON_BIN		 = $(addsuffix /gnu/bin,$(HEXAGON_TOOLS_ROOT))
@@ -49,7 +49,7 @@ HEXAGON_ISS_DIR		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/iss
 TOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/dinkumware/lib/$(V_ARCH)/G0
 QCTOOLSLIB		 = $(HEXAGON_TOOLS_ROOT)/qc/lib/$(V_ARCH)/G0
 QURTLIB			 = $(HEXAGON_SDK_ROOT)/lib/common/qurt/ADSP$(V_ARCH)MP/lib
-#DSPAL			 = $(PX4_BASE)/../dspal_libs/libdspal.a
+DSPAL_INCS		 ?= $(PX4_BASE)/src/lib/dspal
 
 
 CC			 = $(HEXAGON_CLANG_BIN)/$(CROSSDEV)clang
@@ -85,8 +85,7 @@ DYNAMIC_LIBS            = \
 
 # Check if the right version of the toolchain is available
 #
-CROSSDEV_VER_SUPPORTED	 = 6.4.03
-#CROSSDEV_VER_SUPPORTED	 = 6.4.05
+CROSSDEV_VER_SUPPORTED	 = 6.4.03 6.4.05
 CROSSDEV_VER_FOUND	 = $(shell $(CC) --version | sed -n 's/^.*version \([\. 0-9]*\),.*$$/\1/p')
 
 ifeq (,$(findstring $(CROSSDEV_VER_FOUND), $(CROSSDEV_VER_SUPPORTED)))
@@ -114,13 +113,15 @@ ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD) \
 			    -Dnoreturn_function= \
 			    -D__EXPORT= \
 			    -Drestrict= \
-                            -D_DEBUG \
-			    -I$(PX4_BASE)/../dspal/include \
-			    -I$(PX4_BASE)/../dspal/sys \
+			    -D_DEBUG \
+			    -I$(DSPAL_INCS)/include \
+			    -I$(DSPAL_INCS)/sys \
 			    -I$(HEXAGON_TOOLS_ROOT)/gnu/hexagon/include \
 			    -I$(PX4_BASE)/src/lib/eigen \
 			    -I$(PX4_BASE)/src/platforms/qurt/include \
+			    -I$(PX4_BASE)/src/platforms/posix/include \
 			    -I$(PX4_BASE)/mavlink/include/mavlink \
+			    -I$(PX4_BASE)/../inc \
 			    -I$(QURTLIB)/..//include \
 			    -I$(HEXAGON_SDK_ROOT)/inc \
 			    -I$(HEXAGON_SDK_ROOT)/inc/stddef \

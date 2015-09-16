@@ -11,6 +11,13 @@ CMAKE_FORCE_CXX_COMPILER( clang++ Clang )
 #set( CMAKE_FIND_ROOT_PATH_MODE_LIBARARY_ONLY )
 #set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE_ONLY )
 
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+  add_compile_options(-Qunused-arguments)
+endif()
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  add_compile_options(-Qunused-arguments)
+endif()
+
 project(unittests)
 enable_testing()
 
@@ -75,25 +82,25 @@ endfunction()
 
 add_library( px4_platform 
 #                           ${PX_SRC}/platforms/common/px4_getopt.c
-                           ${PX_SRC}/platforms/common/px4_log.c
+                           ${PX_SRC}/platforms/posix/px4_layer/px4_log.c
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_impl.cpp
                            ${PX_SRC}/platforms/posix/px4_layer/px4_posix_tasks.cpp
-                           ${PX_SRC}/platforms/posix/px4_layer/work_lock.c
-                           ${PX_SRC}/platforms/posix/px4_layer/hrt_queue.c
-                           ${PX_SRC}/platforms/posix/px4_layer/work_queue.c
-                           ${PX_SRC}/platforms/posix/px4_layer/dq_rem.c
-                           ${PX_SRC}/platforms/posix/px4_layer/sq_addlast.c
+                           ${PX_SRC}/platforms/posix/work_queue/work_lock.c
+                           ${PX_SRC}/platforms/posix/work_queue/hrt_queue.c
+                           ${PX_SRC}/platforms/posix/work_queue/work_queue.c
+                           ${PX_SRC}/platforms/posix/work_queue/queue.c
+                           ${PX_SRC}/platforms/posix/work_queue/work_cancel.c
+                           ${PX_SRC}/platforms/posix/work_queue/hrt_work_cancel.c
+                           ${PX_SRC}/platforms/posix/work_queue/hrt_thread.c
+                           ${PX_SRC}/platforms/posix/work_queue/work_thread.c
+                           ${PX_SRC}/platforms/posix/work_queue/dq_rem.c
+                           ${PX_SRC}/platforms/posix/work_queue/sq_addlast.c
+                           ${PX_SRC}/platforms/posix/work_queue/sq_addafter.c
+                           ${PX_SRC}/platforms/posix/work_queue/dq_remfirst.c
+                           ${PX_SRC}/platforms/posix/work_queue/sq_remfirst.c
+                           ${PX_SRC}/platforms/posix/work_queue/dq_addlast.c
                            ${PX_SRC}/platforms/posix/px4_layer/lib_crc32.c
-                           ${PX_SRC}/platforms/posix/px4_layer/sq_addafter.c
-                           ${PX_SRC}/platforms/posix/px4_layer/queue.c
-                           ${PX_SRC}/platforms/posix/px4_layer/work_cancel.c
-                           ${PX_SRC}/platforms/posix/px4_layer/hrt_work_cancel.c
-                           ${PX_SRC}/platforms/posix/px4_layer/dq_remfirst.c
-                           ${PX_SRC}/platforms/posix/px4_layer/hrt_thread.c
-                           ${PX_SRC}/platforms/posix/px4_layer/work_thread.c
                            ${PX_SRC}/platforms/posix/px4_layer/drv_hrt.c
-                           ${PX_SRC}/platforms/posix/px4_layer/sq_remfirst.c
-                           ${PX_SRC}/platforms/posix/px4_layer/dq_addlast.c
                            ${PX_SRC}/drivers/device/device_posix.cpp 
                            ${PX_SRC}/drivers/device/vdev.cpp 
                            ${PX_SRC}/drivers/device/vfile.cpp
@@ -123,8 +130,7 @@ add_executable(mixer_test mixer_test.cpp hrt.cpp
                           ${PX_SRC}/modules/systemlib/mixer/mixer_simple.cpp
                           ${PX_SRC}/modules/systemlib/pwm_limit/pwm_limit.c
                           ${PX_SRC}/systemcmds/tests/test_mixer.cpp)
-
-target_link_libraries( mixer_test LINK_PUBLIC px4_platform )
+target_link_libraries( mixer_test px4_platform )
 
                           
 add_gtest(mixer_test)

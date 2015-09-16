@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/att_pos_mocap.h>
@@ -547,7 +548,7 @@ protected:
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
 			msg.load = status.load * 1000.0f;
 			msg.voltage_battery = status.battery_voltage * 1000.0f;
-			msg.current_battery = status.battery_current / 10.0f;
+			msg.current_battery = status.battery_current * 100.0f;
 			msg.drop_rate_comm = status.drop_rate_comm;
 			msg.errors_comm = status.errors_comm;
 			msg.errors_count1 = status.errors_count1;
@@ -572,7 +573,7 @@ protected:
 					bat_msg.voltages[i] = 0;
 				}
 			}
-			bat_msg.current_battery = status.battery_current / 10.0f;
+			bat_msg.current_battery = status.battery_current * 100.0f;
 			bat_msg.current_consumed = status.battery_discharged_mah;
 			bat_msg.energy_consumed = -1.0f;
 			bat_msg.battery_remaining = (status.battery_voltage > 0) ?
@@ -1067,51 +1068,59 @@ protected:
 class MavlinkStreamCameraTrigger : public MavlinkStream
 {
 public:
-	const char *get_name() const {
+	const char *get_name() const
+	{
 		return MavlinkStreamCameraTrigger::get_name_static();
 	}
 
-	static const char *get_name_static() {
+	static const char *get_name_static()
+	{
 		return "CAMERA_TRIGGER";
 	}
 
-	uint8_t get_id() {
+	uint8_t get_id()
+	{
 		return MAVLINK_MSG_ID_CAMERA_TRIGGER;
 	}
 
-	static MavlinkStream *new_instance(Mavlink *mavlink) {
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
 		return new MavlinkStreamCameraTrigger(mavlink);
 	}
 
-	unsigned get_size() {
+	unsigned get_size()
+	{
 		return MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
-	MavlinkOrbSubscription *_camera_trigger_sub;
-	uint64_t _trig_time;
+	MavlinkOrbSubscription *_trigger_sub;
+	uint64_t _trigger_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamCameraTrigger(MavlinkStreamCameraTrigger &);
-	MavlinkStreamCameraTrigger &operator = (const MavlinkStreamCameraTrigger &);
+	MavlinkStreamCameraTrigger& operator = (const MavlinkStreamCameraTrigger &);
 
 protected:
 	explicit MavlinkStreamCameraTrigger(Mavlink *mavlink) : MavlinkStream(mavlink),
-	_camera_trigger_sub(_mavlink->add_orb_subscription(ORB_ID(camera_trigger))),
-	_trig_time(0)
+		_trigger_sub(_mavlink->add_orb_subscription(ORB_ID(camera_trigger))),
+		_trigger_time(0)
 	{}
 
-	void send(const hrt_abstime t) {
+	void send(const hrt_abstime t)
+	{
 		struct camera_trigger_s trigger;
 
-		if (_camera_trigger_sub->update(&_trig_time, &trigger)) {
-			
+		if (_trigger_sub->update(&_trigger_time, &trigger)) {
 			mavlink_camera_trigger_t msg;
 
 			msg.time_usec = trigger.timestamp;
 			msg.seq = trigger.seq;
-			
-			_mavlink->send_message(MAVLINK_MSG_ID_CAMERA_TRIGGER, &msg);
+
+			/* ensure that only active trigger events are sent */
+			if (trigger.timestamp > 0) {
+				_mavlink->send_message(MAVLINK_MSG_ID_CAMERA_TRIGGER, &msg);
+			}
 		}
 	}
 };
@@ -2048,7 +2057,14 @@ protected:
 			msg.y = manual.y * 1000;
 			msg.z = manual.z * 1000;
 			msg.r = manual.r * 1000;
+			unsigned shift = 2;
 			msg.buttons = 0;
+			msg.buttons |= (manual.mode_switch << (shift * 0));
+			msg.buttons |= (manual.return_switch << (shift * 1));
+			msg.buttons |= (manual.posctl_switch << (shift * 2));
+			msg.buttons |= (manual.loiter_switch << (shift * 3));
+			msg.buttons |= (manual.acro_switch << (shift * 4));
+			msg.buttons |= (manual.offboard_switch << (shift * 5));
 
 			_mavlink->send_message(MAVLINK_MSG_ID_MANUAL_CONTROL, &msg);
 		}
@@ -2332,6 +2348,79 @@ protected:
 	}
 };
 
+class MavlinkStreamVtolState : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamVtolState::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "VTOL_STATE";
+	}
+
+	uint8_t get_id()
+	{
+		return MAVLINK_MSG_ID_VTOL_STATE;
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamVtolState(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_VTOL_STATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_status_sub;
+
+	/* do not allow top copying this class */
+	MavlinkStreamVtolState(MavlinkStreamVtolState &);
+	MavlinkStreamVtolState &operator = (const MavlinkStreamVtolState &);
+
+protected:
+	explicit MavlinkStreamVtolState(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
+	{}
+
+	void send(const hrt_abstime t)
+	{
+		struct vehicle_status_s status;
+
+		if (_status_sub->update(&status)) {
+			mavlink_vtol_state_t msg;
+
+			if (status.is_vtol) {
+				if (status.is_rotary_wing) {
+					if (status.in_transition_mode) {
+						msg.state = MAV_VTOL_STATE_TRANSITION_TO_FW;
+
+					} else {
+						msg.state = MAV_VTOL_STATE_MC;
+					}
+
+				} else {
+					if (status.in_transition_mode) {
+						msg.state = MAV_VTOL_STATE_TRANSITION_TO_MC;
+
+					} else {
+						msg.state = MAV_VTOL_STATE_FW;
+					}
+				}
+
+			} else {
+				msg.state = MAV_VTOL_STATE_UNDEFINED;
+			}
+
+			_mavlink->send_message(MAVLINK_MSG_ID_VTOL_STATE, &msg);
+		}
+	}
+};
 
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
@@ -2366,6 +2455,8 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamActuatorControlTarget<3>::new_instance, &MavlinkStreamActuatorControlTarget<3>::get_name_static),
 	new StreamListItem(&MavlinkStreamNamedValueFloat::new_instance, &MavlinkStreamNamedValueFloat::get_name_static),
 	new StreamListItem(&MavlinkStreamCameraCapture::new_instance, &MavlinkStreamCameraCapture::get_name_static),
+	new StreamListItem(&MavlinkStreamCameraTrigger::new_instance, &MavlinkStreamCameraTrigger::get_name_static),
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
+	new StreamListItem(&MavlinkStreamVtolState::new_instance, &MavlinkStreamVtolState::get_name_static),
 	nullptr
 };
