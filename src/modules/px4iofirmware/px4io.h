@@ -49,6 +49,12 @@
 #include <systemlib/pwm_limit/pwm_limit.h>
 
 /*
+ hotfix: we are critically short of memory in px4io and this is the
+ easiest way to reclaim about 800 bytes.
+ */
+#define perf_alloc(a,b) NULL
+
+/*
  * Constants and limits.
  */
 #define PX4IO_SERVO_COUNT		8
@@ -116,6 +122,7 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_setup_trim_roll	r_page_setup[PX4IO_P_SETUP_TRIM_ROLL]
 #define r_setup_trim_pitch	r_page_setup[PX4IO_P_SETUP_TRIM_PITCH]
 #define r_setup_trim_yaw	r_page_setup[PX4IO_P_SETUP_TRIM_YAW]
+#define r_setup_sbus_rate	r_page_setup[PX4IO_P_SETUP_SBUS_RATE]
 
 #define r_control_values	(&r_page_controls[0])
 
@@ -170,7 +177,6 @@ extern pwm_limit_t pwm_limit;
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 
 # define PX4IO_RELAY_CHANNELS		0
-# define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
 # define ENABLE_SBUS_OUT(_s)		stm32_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
 # define VDD_SERVO_FAULT		(!stm32_gpioread(GPIO_SERVO_FAULT_DETECT))
