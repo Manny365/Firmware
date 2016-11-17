@@ -614,7 +614,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 	_parameter_handles.land_slope_angle = param_find("FW_LND_ANG");
 	_parameter_handles.land_H1_virt = param_find("FW_LND_HVIRT");
-	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FL_ALT");
+	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FLALT");
 	_parameter_handles.land_flare_pitch_min_deg = param_find("FW_LND_FL_PMIN");
 	_parameter_handles.land_flare_pitch_max_deg = param_find("FW_LND_FL_PMAX");
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("FW_LND_TLALT");
@@ -756,7 +756,7 @@ FixedwingPositionControl::parameters_update()
 
 	/* sanity check parameters */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
-	    _parameters.airspeed_max < 5.0f ||
+	    _parameters.airspeed_max < 4.0f ||
 	    _parameters.airspeed_min > 100.0f ||
 	    _parameters.airspeed_trim < _parameters.airspeed_min ||
 	    _parameters.airspeed_trim > _parameters.airspeed_max) {
@@ -924,7 +924,7 @@ FixedwingPositionControl::get_demanded_airspeed()
 
 	// neutral throttle corresponds to trim airspeed
 	if (_manual.z < 0.5f) {
-		// lower half of throttle is min to trim airspeed
+		// lower half of throttle is trim to min airspeed
 		altctrl_airspeed = _parameters.airspeed_min +
 				   (_parameters.airspeed_trim - _parameters.airspeed_min) *
 				   _manual.z * 2;
@@ -1209,14 +1209,14 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 	/* only run position controller in fixed-wing mode and during transitions for VTOL */
 	if (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
+		// if return false, att_sp will not published 
 		return false;
 	}
 
 	bool setpoint = true;
-
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
 	_att_sp.apply_flaps = false;		// by default we don't use flaps
-	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
+	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements ??lyuximin: what is this?
 
 	/* filter speed and altitude for controller */
 	math::Vector<3> accel_body(_sensor_combined.accelerometer_m_s2);
@@ -1253,8 +1253,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 		_was_in_air = false;
 	}
 
-	if (_control_mode.flag_control_auto_enabled &&
-	    pos_sp_triplet.current.valid) {
+	if (_control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
 
 		/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
@@ -1415,7 +1414,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					mavlink_log_info(&_mavlink_log_pub, "#Landing, heading hold");
 				}
 
-//					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
+				// warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_yaw));
 
 				_l1_control.navigate_heading(target_bearing, _yaw, ground_speed_2d);
 
@@ -1503,8 +1502,8 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			    land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 				/* land with minimal speed */
 
-//					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
-//					_tecs.set_speed_weight(2.0f);
+				/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
+				// _tecs.set_speed_weight(2.0f);
 
 				/* kill the throttle if param requests it */
 				throttle_max = _parameters.throttle_max;
@@ -1778,8 +1777,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			_att_sp.roll_reset_integral = true;
 		}
 
-	} else if (_control_mode.flag_control_velocity_enabled &&
-		   _control_mode.flag_control_altitude_enabled) {
+	} else if (_control_mode.flag_control_velocity_enabled && _control_mode.flag_control_altitude_enabled) {
 		/* POSITION CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed,
 		   heading is set to a distant waypoint */
 
@@ -1897,6 +1895,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION && _control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
 			/* Need to init because last loop iteration was in a different mode */
+			// lyu: need to figure out the alt is relative or absolute altitude: should be the altitude from gps
 			_hold_alt = _global_pos.alt;
 		}
 
@@ -1940,12 +1939,12 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 					   _global_pos.alt,
 					   ground_speed,
 					   tecs_status_s::TECS_MODE_NORMAL);
+		// warnx("in altitude controller");
 
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 
 		/** MANUAL FLIGHT **/
-
 		// reset hold altitude
 		_hold_alt = _global_pos.alt;
 
@@ -2085,22 +2084,26 @@ FixedwingPositionControl::task_main()
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[2];
+	// px4_pollfd_struct_t fds[3];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
 	fds[1].fd = _global_pos_sub;
 	fds[1].events = POLLIN;
+	// for test, use sensor_combined_temporally
+	// fds[2].fd = _sensor_combined_sub;
+	// fds[2].events = POLLIN;
 
 	_task_running = true;
 
 	while (!_task_should_exit) {
-
 		/* wait for up to 500ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0) {
+			warnx(" continue, no data ");
 			continue;
 		}
 
@@ -2127,9 +2130,13 @@ FixedwingPositionControl::task_main()
 
 			/* update parameters from storage */
 			parameters_update();
+			warnx(" parameters_update ");
 		}
 
+
 		/* only run controller if position changed */
+		// publish anyway for test lyuximin
+		// if (fds[1].revents & POLLIN || 1) {
 		if (fds[1].revents & POLLIN) {
 			perf_begin(_loop_perf);
 
@@ -2153,12 +2160,16 @@ FixedwingPositionControl::task_main()
 			 * publish setpoint.
 			 */
 			if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
+
 				_att_sp.timestamp = hrt_absolute_time();
+
+				// warnx("_attitude_setpoint_id %d", (int)_attitude_setpoint_id);
 
 				/* lazily publish the setpoint only once available */
 				if (_attitude_sp_pub != nullptr) {
 					/* publish the attitude setpoint */
 					orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
+					// warnx("att_sp published, pitch is %2.4f", (double)_att_sp.pitch_body);
 
 				} else if (_attitude_setpoint_id) {
 					/* advertise and publish */
@@ -2177,6 +2188,7 @@ FixedwingPositionControl::task_main()
 					_nav_capabilities.turn_distance = turn_distance;
 
 					navigation_capabilities_publish();
+					// warnx("navigation_capabilities_published");
 
 				}
 
@@ -2219,6 +2231,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 		const math::Vector<3> &ground_speed,
 		unsigned mode)
 {
+	// warnx("tecs_update_pitch_throttle");
 	bool run_tecs = true;
 	float dt = 0.01f; // prevent division with 0
 
@@ -2262,6 +2275,7 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	if (!run_tecs) {
 		// next time we run TECS we should reinitialize states
 		_reinitialize_tecs = true;
+		// modified by lyu should return
 		return;
 	}
 
@@ -2288,10 +2302,13 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
 		math::Matrix<3, 3> R_offset;
 		R_offset.from_euler(0, M_PI_2_F, 0);
+		// R_offset.from_euler_pry(M_PI_2_F, 0, 0);
 		math::Matrix<3, 3> R_fixed_wing = _R_nb * R_offset;
 		math::Vector<3> euler = R_fixed_wing.to_euler();
 		pitch_for_tecs = euler(1);
 	}
+
+	// warnx("pitch for tecs %2.4f",(double)pitch_for_tecs );
 
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs, altitude, alt_sp, v_sp,
 				    _ctrl_state.airspeed, eas2tas,
@@ -2307,21 +2324,21 @@ void FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float v_
 	t.timestamp = s.timestamp;
 
 	switch (s.mode) {
-	case TECS::ECL_TECS_MODE_NORMAL:
-		t.mode = tecs_status_s::TECS_MODE_NORMAL;
-		break;
+		case TECS::ECL_TECS_MODE_NORMAL:
+			t.mode = tecs_status_s::TECS_MODE_NORMAL;
+			break;
 
-	case TECS::ECL_TECS_MODE_UNDERSPEED:
-		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
-		break;
+		case TECS::ECL_TECS_MODE_UNDERSPEED:
+			t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
+			break;
 
-	case TECS::ECL_TECS_MODE_BAD_DESCENT:
-		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
-		break;
+		case TECS::ECL_TECS_MODE_BAD_DESCENT:
+			t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
+			break;
 
-	case TECS::ECL_TECS_MODE_CLIMBOUT:
-		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
-		break;
+		case TECS::ECL_TECS_MODE_CLIMBOUT:
+			t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
+			break;
 	}
 
 	t.altitudeSp 		= s.altitude_sp;

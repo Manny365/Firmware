@@ -828,6 +828,7 @@ MulticopterPositionControl::control_manual(float dt)
 	/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
 	math::Matrix<3, 3> R_yaw_sp;
 	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+	// R_yaw_sp.from_euler_pry(0.0f, 0.0f, _att_sp.yaw_body);
 	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
 			_params.vel_cruise); // in NED and scaled to actual velocity
 
@@ -1262,10 +1263,15 @@ MulticopterPositionControl::task_main()
 		}
 
 		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
+		// lyu: if in transition, reset_yaw_sp too, need to check fw yaw control logic
 		if (_vehicle_status.is_vtol) {
 			if (!_vehicle_status.is_rotary_wing) {
 				reset_yaw_sp = true;
 				_reset_alt_sp = true;
+			}
+			// add by lyu
+			if (_vehicle_status.in_transition_mode){
+				reset_yaw_sp = true;
 			}
 		}
 
@@ -1881,6 +1887,7 @@ MulticopterPositionControl::task_main()
 						/* autonomous altitude control without position control (failsafe landing),
 						 * force level attitude, don't change yaw */
 						R.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
+						// R.from_euler_pry(0.0f, 0.0f, _att_sp.yaw_body);
 
 						/* copy rotation matrix to attitude setpoint topic */
 						memcpy(&_att_sp.R_body[0], R.data, sizeof(_att_sp.R_body));
@@ -2006,6 +2013,7 @@ MulticopterPositionControl::task_main()
 			math::Vector<3> zB = {0, 0, 1};
 			math::Matrix<3,3> R_sp_roll_pitch;
 			R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
+			// R_sp_roll_pitch.from_euler_pry(_att_sp.pitch_body, _att_sp.roll_body, 0);
 			math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
 
 
@@ -2014,6 +2022,7 @@ MulticopterPositionControl::task_main()
 			// into the direction of the desired heading
 			math::Matrix<3,3> R_yaw_correction;
 			R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
+			// R_yaw_correction.from_euler_pry(0.0f, 0.0f, -yaw_error);
 			z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
 
 			// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
@@ -2024,6 +2033,7 @@ MulticopterPositionControl::task_main()
 			float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
 
 			R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
+			// R_sp.from_euler_pry(pitch_new, roll_new, _att_sp.yaw_body);
 
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
 
@@ -2052,7 +2062,8 @@ MulticopterPositionControl::task_main()
 		 * Do not publish if offboard is enabled but position/velocity/accel control is disabled,
 		 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
 		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
-		 * attitude setpoints for the transition).
+		 * attitude setpoints for the transition). lyuximin: but during the transition process, we may need the att_sp from mc or fw
+		 * lyu: so, during transition, mc still publish _att_sp
 		 */
 		if (!(_control_mode.flag_control_offboard_enabled &&
 				!(_control_mode.flag_control_position_enabled ||
@@ -2063,6 +2074,7 @@ MulticopterPositionControl::task_main()
 				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
 			} else if (_attitude_setpoint_id) {
+
 				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 			}
 		}

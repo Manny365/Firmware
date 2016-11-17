@@ -717,6 +717,8 @@ void VtolAttitudeControl::task_main()
 				orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
 
 				_vtol_type->update_mc_state();
+				// warnx("roll %2.4f pitch %2.4f yaw %2.4f thrust %2.4f",(double)_v_att_sp.roll_body,(double)_v_att_sp.pitch_body,(double)_v_att_sp.yaw_body,(double)_v_att_sp.thrust);
+
 
 				fill_mc_att_rates_sp();
 			}
@@ -732,6 +734,7 @@ void VtolAttitudeControl::task_main()
 				vehicle_manual_poll();
 
 				_vtol_type->update_fw_state();
+				// warnx("roll %2.4f pitch %2.4f yaw %2.4f thrust %2.4f",(double)_v_att_sp.roll_body,(double)_v_att_sp.pitch_body,(double)_v_att_sp.yaw_body,(double)_v_att_sp.thrust);
 
 				fill_fw_att_rates_sp();
 			}

@@ -421,7 +421,7 @@ PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
 PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
 
 /**
- *
+ * H1 Virt
  *
  * @unit m
  * @group FW L1 Control

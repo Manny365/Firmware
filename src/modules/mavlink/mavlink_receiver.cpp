@@ -960,8 +960,12 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.vy = 0.0f;
 	vision_position.vz = 0.0f;
 
+	//lyuxmin q.from_euler_pry
 	math::Quaternion q;
-	q.from_euler(pos.roll, pos.pitch, pos.yaw);
+	// q.from_euler(pos.roll, pos.pitch, pos.yaw);
+	math::Matrix<3, 3> R;
+	R.from_euler(pos.roll, pos.pitch, pos.yaw);
+	q.from_dcm(R);
 
 	vision_position.q[0] = q(0);
 	vision_position.q[1] = q(1);

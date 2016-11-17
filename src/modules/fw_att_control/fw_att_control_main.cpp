@@ -123,8 +123,8 @@ public:
 
 private:
 
-	bool		_task_should_exit;		/**< if true, attitude control task should exit */
-	bool		_task_running;			/**< if true, task is running in its mainloop */
+	bool	_task_should_exit;		/**< if true, attitude control task should exit */
+	bool	_task_running;			/**< if true, task is running in its mainloop */
 	int		_control_task;			/**< task handle */
 
 	int		_ctrl_state_sub;	/**< control state subscription */
@@ -132,8 +132,8 @@ private:
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
-	int 		_manual_sub;			/**< notification of manual control updates */
+	int 	_params_sub;			/**< notification of parameter updates */
+	int 	_manual_sub;			/**< notification of manual control updates */
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
@@ -1044,6 +1044,8 @@ FixedwingAttitudeControl::task_main()
 						_wheel_ctrl.reset_integrator();
 					}
 
+					// maybe need to publish here lyuximin-- no need 
+
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
@@ -1057,6 +1059,7 @@ FixedwingAttitudeControl::task_main()
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
+					 // here is actually no reason -> lyuximin
 					roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
 					pitch_sp = -(_manual.x * _parameters.man_pitch_max) + _parameters.pitchsp_offset_rad;
 					/* allow manual control of rudder deflection */
@@ -1080,14 +1083,17 @@ FixedwingAttitudeControl::task_main()
 					att_sp.yaw_reset_integral = false;
 
 					/* lazily publish the setpoint only once available */
+					// this is actually for ground manual test
 					if (_attitude_sp_pub != nullptr) {
-						/* publish the attitude setpoint */
+							/* publish the attitude setpoint */
 						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &att_sp);
 
 					} else if (_attitude_setpoint_id) {
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &att_sp);
 					}
+
+
 				}
 
 				/* If the aircraft is on ground reset the integrators */
@@ -1097,6 +1103,9 @@ FixedwingAttitudeControl::task_main()
 					_yaw_ctrl.reset_integrator();
 					_wheel_ctrl.reset_integrator();
 				}
+
+				// warnx ("in else loop");
+				// warnx("roll %2.4f pitch %2.4f yaw %2.4f thrust %2.4f",(double)_att_sp.roll_body,(double)_att_sp.pitch_body,(double)_att_sp.yaw_body,(double)_att_sp.thrust);
 
 				/* Prepare speed_body_u and speed_body_w */
 				float speed_body_u = _R(0, 0) * _global_pos.vel_n + _R(1, 0) * _global_pos.vel_e + _R(2, 0) * _global_pos.vel_d;
@@ -1249,6 +1258,8 @@ FixedwingAttitudeControl::task_main()
 				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x + _parameters.trim_pitch;
 				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r + _parameters.trim_yaw;
 				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
+
+				// warnx("manual directly control");
 			}
 
 			_actuators.control[actuator_controls_s::INDEX_FLAPS] = flaps_applied;
@@ -1266,6 +1277,7 @@ FixedwingAttitudeControl::task_main()
 			if (_vcontrol_mode.flag_control_rates_enabled ||
 			    _vcontrol_mode.flag_control_attitude_enabled ||
 			    _vcontrol_mode.flag_control_manual_enabled) {
+
 				/* publish the actuator controls */
 				if (_actuators_0_pub != nullptr) {
 					orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
