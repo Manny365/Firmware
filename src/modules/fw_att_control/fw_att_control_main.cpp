@@ -925,6 +925,7 @@ FixedwingAttitudeControl::task_main()
 
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
+				
 				/* scale around tuning airspeed */
 				float airspeed;
 
@@ -995,16 +996,16 @@ FixedwingAttitudeControl::task_main()
 				} else if (_vcontrol_mode.flag_control_velocity_enabled) {
 
 					/* the pilot does not want to change direction,
-					 * take straight attitude setpoint from position controller
+					 * take straight attitude setpoint from position controller; lyu: have changed in position controller loop
 					 */
-					if (fabsf(_manual.y) < 0.01f && fabsf(_roll) < 0.2f) {
-						roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
+					// if (fabsf(_manual.y) < 0.01f && fabsf(_roll) < 0.2f) {
+					// 	roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 
-					} else {
-						roll_sp = (_manual.y * _parameters.man_roll_max)
-							  + _parameters.rollsp_offset_rad;
-					}
-
+					// } else {
+					// 	roll_sp = (_manual.y * _parameters.man_roll_max)
+					// 		  + _parameters.rollsp_offset_rad;
+					// }
+					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
@@ -1026,7 +1027,8 @@ FixedwingAttitudeControl::task_main()
 					/*
 					 * Velocity should be controlled and manual is enabled.
 					*/
-					roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
+					// roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
+					roll_sp = _att_sp.roll_body + _parameters.rollsp_offset_rad;
 					pitch_sp = _att_sp.pitch_body + _parameters.pitchsp_offset_rad;
 					throttle_sp = _att_sp.thrust;
 
@@ -1044,8 +1046,6 @@ FixedwingAttitudeControl::task_main()
 						_wheel_ctrl.reset_integrator();
 					}
 
-					// maybe need to publish here lyuximin-- no need 
-
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
@@ -1059,7 +1059,7 @@ FixedwingAttitudeControl::task_main()
 					 * the intended attitude setpoint. Later, after the rate control step the
 					 * trim is added again to the control signal.
 					 */
-					 // here is actually no reason -> lyuximin
+					 // lyu: in the sabilization mode.
 					roll_sp = (_manual.y * _parameters.man_roll_max) + _parameters.rollsp_offset_rad;
 					pitch_sp = -(_manual.x * _parameters.man_pitch_max) + _parameters.pitchsp_offset_rad;
 					/* allow manual control of rudder deflection */
@@ -1092,7 +1092,6 @@ FixedwingAttitudeControl::task_main()
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &att_sp);
 					}
-
 
 				}
 
@@ -1141,6 +1140,7 @@ FixedwingAttitudeControl::task_main()
 
 				/* Run attitude controllers */
 				if (PX4_ISFINITE(roll_sp) && PX4_ISFINITE(pitch_sp)) {
+
 					_roll_ctrl.control_attitude(control_input);
 					_pitch_ctrl.control_attitude(control_input);
 					_yaw_ctrl.control_attitude(control_input); //runs last, because is depending on output of roll and pitch attitude
@@ -1191,9 +1191,7 @@ FixedwingAttitudeControl::task_main()
 
 					if (_att_sp.fw_control_yaw == true) {
 						yaw_u = _wheel_ctrl.control_bodyrate(control_input);
-					}
-
-					else {
+					} else {
 						yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					}
 
@@ -1253,12 +1251,11 @@ FixedwingAttitudeControl::task_main()
 				}
 
 			} else {
-				/* manual/direct control */
+				/* manual/direct control, truly manual */
 				_actuators.control[actuator_controls_s::INDEX_ROLL] = _manual.y + _parameters.trim_roll;
 				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x + _parameters.trim_pitch;
 				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r + _parameters.trim_yaw;
 				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
-
 				// warnx("manual directly control");
 			}
 
