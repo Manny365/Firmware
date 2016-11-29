@@ -735,6 +735,7 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode && hrt_elapsed_time(&_nav_caps.timestamp) < 5000000) {
 		if (_nav_caps.turn_distance > radius) {
 			radius = _nav_caps.turn_distance;
+			// warnx("acceptance_radius is set to %2.2f",(double)radius);
 		}
 	}
 

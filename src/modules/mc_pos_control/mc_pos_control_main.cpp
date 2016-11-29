@@ -1036,6 +1036,7 @@ void MulticopterPositionControl::control_auto(float dt)
 	}
 
 	if (current_setpoint_valid) {
+
 		/* scaled space: 1 == position error resulting max allowed speed */
 
 		math::Vector<3> cruising_speed = _params.vel_cruise;
@@ -1049,6 +1050,7 @@ void MulticopterPositionControl::control_auto(float dt)
 		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
 
 		/* convert current setpoint to scaled space */
+		// lyu: why scale the space?
 		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
 
 		/* by default use current setpoint as is */
@@ -1165,7 +1167,6 @@ void MulticopterPositionControl::control_auto(float dt)
 			_reset_alt_sp = false;
 
 			/* otherwise: in case of interrupted mission don't go to waypoint but stay at current position */
-
 		} else {
 			_reset_pos_sp = true;
 			_reset_alt_sp = true;

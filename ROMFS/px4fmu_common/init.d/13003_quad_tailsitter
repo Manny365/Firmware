@@ -12,9 +12,15 @@ sh /etc/init.d/rc.vtol_defaults
 if [ $AUTOCNF == yes ]
 then
     param set VT_MOT_COUNT 4
+    # DJI ESCs do not support calibration and need a higher min
     param set VT_IDLE_PWM_MC  1200
     param set VT_TYPE 0
     param set VT_ELEV_MC_LOCK 1
+    param set VT_ARSP_TRANS 7.5
+    param set VT_FWPERM_STAB 1
+    param set FW_AIRSPD_MAX 11
+    param set FW_AIRSPD_TRIM 7
+    param set FW_AIRSPD_MIN 9
 fi
 
 set MIXER quad_x_vtol

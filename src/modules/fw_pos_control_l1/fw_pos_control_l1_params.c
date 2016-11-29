@@ -63,11 +63,12 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
  *
  * Damping factor for L1 control.
  *
+ * @unit norm
  * @min 0.6
  * @max 0.9
  * @group FW L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
+PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.707f);
 
 /**
  * Cruise throttle
