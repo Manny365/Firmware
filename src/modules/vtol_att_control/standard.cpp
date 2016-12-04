@@ -79,7 +79,7 @@ Standard::parameters_update()
 {
 	float v;
 
-	/* duration of a forwards transition to fw mode */
+	/* duration of a forwards transition to fw mode (pusher speed up to target rotation) */
 	param_get(_params_handles_standard.front_trans_dur, &v);
 	_params_standard.front_trans_dur = math::constrain(v, 0.0f, 5.0f);
 
@@ -89,7 +89,7 @@ Standard::parameters_update()
 
 	/* target throttle value for pusher motor during the transition to fw mode */
 	param_get(_params_handles_standard.pusher_trans, &v);
-	_params_standard.pusher_trans = math::constrain(v, 0.0f, 5.0f);
+	_params_standard.pusher_trans = math::constrain(v, 0.0f, 1.0f);
 
 	/* airspeed at which we should switch to fw mode */
 	param_get(_params_handles_standard.airspeed_trans, &v);
@@ -343,30 +343,56 @@ void Standard::update_fw_state()
  */
 void Standard::fill_actuator_outputs()
 {
-	/* multirotor controls */
-	_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
-	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
-			* _mc_roll_weight;	// roll
 
-	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
+	if (_vtol_schedule.flight_mode == TRANSITION_TO_MC || _vtol_schedule.flight_mode == TRANSITION_TO_FW) {
+
+				/* multirotor controls */
+		_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
+		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];	// roll
+
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	// pitch
+
+		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	// yaw
+
+		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];// throttle
+
+		/* fixed wing controls */
+		_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
+		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];	//roll
+		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
+			(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim);	//pitch
+		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
+
+		// _actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
+
+	} else {
+
+		/* multirotor controls */
+		_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
+		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
+				* _mc_roll_weight;	// roll
+
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
+			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;	// pitch
 
 
-	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
-			_mc_yaw_weight;	// yaw
-	_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;	// throttle
+		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
+				_mc_yaw_weight;	// yaw
+		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
+			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;	// throttle lyuximin: maybe don't use weight?? should try later!!
 
-	/* fixed wing controls */
-	_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
-	_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]
-			* (1 - _mc_roll_weight);	//roll
-	_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-		(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) * (1 - _mc_pitch_weight);	//pitch
-	_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW]
-			* (1 - _mc_yaw_weight);	// yaw
+		/* fixed wing controls */
+		_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
+		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]
+				* (1 - _mc_roll_weight);	//roll
+		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
+			(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) * (1 - _mc_pitch_weight);	//pitch
+		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW]
+				* (1 - _mc_yaw_weight);	// yaw
 
-	_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
+		// _actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
+
+	}
 
 	// set the fixed wing throttle control
 	if (_vtol_schedule.flight_mode == FW_MODE && _armed->armed) {
