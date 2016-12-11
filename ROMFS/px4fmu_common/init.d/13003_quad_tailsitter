@@ -18,9 +18,9 @@ then
     param set VT_ELEV_MC_LOCK 1
     param set VT_ARSP_TRANS 7.5
     param set VT_FWPERM_STAB 1
-    param set FW_AIRSPD_MAX 11
-    param set FW_AIRSPD_TRIM 7
-    param set FW_AIRSPD_MIN 9
+    param set FW_AIRSPD_MAX 12
+    param set FW_AIRSPD_TRIM 10
+    param set FW_AIRSPD_MIN 8
 fi
 
 set MIXER quad_x_vtol
