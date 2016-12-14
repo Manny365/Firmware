@@ -69,6 +69,7 @@
 #include <uORB/topics/fw_virtual_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_custom.h>
 #include <uORB/topics/actuator_controls_virtual_mc.h>
 #include <uORB/topics/actuator_controls_virtual_fw.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -126,6 +127,7 @@ public:
 	struct actuator_controls_s 			*get_actuators_out1() {return &_actuators_out_1;}
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
+	struct actuator_controls_s 			*get_actuators_custom_in() {return &_actuators_custom_in;}
 	struct actuator_armed_s 			*get_armed() {return &_armed;}
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
 	struct airspeed_s 				*get_airspeed() {return &_airspeed;}
@@ -160,8 +162,9 @@ private:
 	int 	_vehicle_status_sub;
 	int	_tecs_status_sub;
 
-	int 	_actuator_inputs_mc;	//topic on which the mc_att_controller publishes actuator inputs
-	int 	_actuator_inputs_fw;	//topic on which the fw_att_controller publishes actuator inputs
+	int 	_actuator_controls_custom_sub;	//topic on which the mc_att_controller publishes actuator inputs
+	int 	_actuator_inputs_mc;			//topic on which the mc_att_controller publishes actuator inputs
+	int 	_actuator_inputs_fw;			//topic on which the fw_att_controller publishes actuator inputs
 
 	//handlers for publishers
 	orb_advert_t	_actuators_0_pub;		//input for the mixer (roll,pitch,yaw,thrust)
@@ -184,6 +187,7 @@ private:
 	struct actuator_controls_s			_actuators_out_1;	//actuator controls going to the fw mixer (used for elevons)
 	struct actuator_controls_s			_actuators_mc_in;	//actuator controls from mc_att_control
 	struct actuator_controls_s			_actuators_fw_in;	//actuator controls from fw_att_control
+	struct actuator_controls_s		_actuators_custom_in;	//actuator controls from navigation(custom pwm and port)
 	struct actuator_armed_s				_armed;				//actuator arming status
 	struct vehicle_local_position_s			_local_pos;
 	struct airspeed_s 				_airspeed;			// airspeed
@@ -232,6 +236,7 @@ private:
 	void 		fw_virtual_att_sp_poll();
 	void 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
 	void 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
+	void 		actuator_controls_custom_poll();//Check for changes in actuator_controls_custom output
 	void 		vehicle_rates_sp_mc_poll();
 	void 		vehicle_rates_sp_fw_poll();
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values

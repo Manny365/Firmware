@@ -138,7 +138,8 @@ protected:
 	hrt_abstime _time_wp_reached;
 
 	actuator_controls_s _actuators;
-	orb_advert_t    _actuator_pub;
+	// orb_advert_t    _actuator_pub;
+	orb_advert_t	_actuator_custom_pub;
 	orb_advert_t	_cmd_pub;
 
 	control::BlockParamFloat _param_yaw_timeout;

@@ -1830,6 +1830,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("LOCAL_POSITION_NED", 3.0f);
 		configure_stream("RC_CHANNELS", 1.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
+		configure_stream("SERVO_OUTPUT_RAW_1", 1.0f);
 		configure_stream("POSITION_TARGET_GLOBAL_INT", 3.0f);
 		configure_stream("ATTITUDE_TARGET", 8.0f);
 		configure_stream("DISTANCE_SENSOR", 0.5f);
@@ -1859,6 +1860,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream("RC_CHANNELS", 20.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 10.0f);
+		configure_stream("SERVO_OUTPUT_RAW_1", 1.0f);
 		configure_stream("VFR_HUD", 10.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("TIMESYNC", 10.0f);
@@ -1884,9 +1886,12 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("SYSTEM_TIME", 1.0f);
 		configure_stream("RC_CHANNELS", 5.0f);
 		configure_stream("SERVO_OUTPUT_RAW_0", 1.0f);
+		configure_stream("SERVO_OUTPUT_RAW_1", 1.0f);
 		configure_stream("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream("ALTITUDE", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 1.0f);
+		// configure_stream("SERVO_OUTPUT_RAW_0", 20.0f);
+		// configure_stream("SERVO_OUTPUT_RAW_1", 20.0f);
 		break;
 
 	case MAVLINK_MODE_MAGIC:

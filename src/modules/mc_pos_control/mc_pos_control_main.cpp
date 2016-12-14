@@ -832,12 +832,10 @@ MulticopterPositionControl::control_manual(float dt)
 	/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
 	math::Matrix<3, 3> R_yaw_sp;
 	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-	// R_yaw_sp.from_euler_pry(0.0f, 0.0f, _att_sp.yaw_body);
-	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
-			_params.vel_cruise); // in NED and scaled to actual velocity
+	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(_params.vel_cruise); // in NED and scaled to actual velocity
 
 	/*
-	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
+	 * assisted velocity mode: user controls velocity, but if velocity is small enough, position
 	 * hold is activated for the corresponding axis
 	 */
 
@@ -872,11 +870,11 @@ MulticopterPositionControl::control_manual(float dt)
 	/* vertical axis */
 	if (_control_mode.flag_control_altitude_enabled) {
 		/* check for pos. hold */
+		/** if vel_sp is 0 */
 		if (fabsf(req_vel_sp(2)) < FLT_EPSILON) {
 			if (!_alt_hold_engaged) {
 				if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
 					_alt_hold_engaged = true;
-
 				} else {
 					_alt_hold_engaged = false;
 				}
