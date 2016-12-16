@@ -91,6 +91,7 @@
 #include <lib/geo/geo.h>
 #include <lib/tailsitter_recovery/tailsitter_recovery.h>
 #include <vtol_att_control/vtol_type.h>
+// #include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -229,6 +230,11 @@ private:
 	}		_params;
 
 	TailsitterRecovery *_ts_opt_recovery;	/**< Computes optimal rates for tailsitter recovery */
+	/* Low pass filter for actuator output */
+	// math::LowPassFilter2p _lp_roll;
+	// math::LowPassFilter2p _lp_pitch;
+	// math::LowPassFilter2p _lp_yaw;
+	// math::LowPassFilter2p _lp_thrust;
 
 	/**
 	 * Update our local parameter cache.
@@ -328,7 +334,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
 	_controller_latency_perf(perf_alloc_once(PC_ELAPSED, "ctrl_latency")),
-	_ts_opt_recovery(nullptr){
+	_ts_opt_recovery(nullptr)
+	// _lp_roll(250.0f, 5.0f),
+	// _lp_pitch(250.0f, 5.0f),
+	// _lp_yaw(250.0f, 5.0f),
+	// _lp_thrust(250.0f, 5.0f)
+	{
 	memset(&_ctrl_state, 0, sizeof(_ctrl_state));
 	memset(&_v_att_sp, 0, sizeof(_v_att_sp));
 	memset(&_v_rates_sp, 0, sizeof(_v_rates_sp));
@@ -396,8 +407,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_params_handles.pitch_tc		= 	param_find("MC_PITCH_TC");
 	_params_handles.vtol_opt_recovery_enabled	= param_find("VT_OPT_RECOV_EN");
 	_params_handles.vtol_wv_yaw_rate_scale		= param_find("VT_WV_YAWR_SCL");
-
-
 
 
 	/* fetch initial parameter values */
@@ -1006,6 +1015,12 @@ MulticopterAttitudeControl::task_main()
 				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _ctrl_state.timestamp;
+
+				// _actuators.control[0] = _lp_roll.apply(_actuators.control[0]);
+				// _actuators.control[1] = _lp_pitch.apply(_actuators.control[1]);
+				// _actuators.control[2] = _lp_yaw.apply(_actuators.control[2]);
+				// _actuators.control[3] = _lp_thrust.apply(_actuators.control[3]);
+
 
 				_controller_status.roll_rate_integ = _rates_int(0);
 				_controller_status.pitch_rate_integ = _rates_int(1);

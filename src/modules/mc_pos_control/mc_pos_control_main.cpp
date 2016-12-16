@@ -87,6 +87,7 @@
 
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
+// #include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #define TILT_COS_MAX	0.7f
 #define SIGMA			0.000001f
@@ -143,6 +144,11 @@ private:
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
 	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
 	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
+	/* Low pass filter for attitude and thrust set_point */
+	// math::LowPassFilter2p _lp_roll_sp;
+	// math::LowPassFilter2p _lp_pitch_sp;
+	// math::LowPassFilter2p _lp_yaw_sp;
+	// math::LowPassFilter2p _lp_thrust_sp;
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
@@ -373,6 +379,12 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
 	_global_vel_sp_sub(-1),
+
+	/* low pass filter */
+	// _lp_roll_sp(100.0f, 20.0f),
+	// _lp_pitch_sp(100.0f, 20.0f),
+	// _lp_yaw_sp(100.0f, 15.0f),
+	// _lp_thrust_sp(100.0f, 15.0f),
 
 	/* publications */
 	_att_sp_pub(nullptr),
@@ -2035,8 +2047,13 @@ MulticopterPositionControl::task_main()
 			float pitch_new = asinf(z_roll_pitch_sp(0));
 			float roll_new = -atan2f(z_roll_pitch_sp(1), z_roll_pitch_sp(2));
 
+			/* add by lyu apply low pass filter */
+			// roll_new = _lp_roll_sp.apply(roll_new);
+			// pitch_new = _lp_pitch_sp.apply(pitch_new);
+			// _att_sp.yaw_body = _lp_yaw_sp.apply(_att_sp.yaw_body);
+			// _att_sp.thrust = _lp_thrust_sp.apply(_att_sp.thrust);
+
 			R_sp.from_euler(roll_new, pitch_new, _att_sp.yaw_body);
-			// R_sp.from_euler_pry(pitch_new, roll_new, _att_sp.yaw_body);
 
 			memcpy(&_att_sp.R_body[0], R_sp.data, sizeof(_att_sp.R_body));
 
