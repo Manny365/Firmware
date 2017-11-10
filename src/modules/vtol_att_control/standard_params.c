@@ -59,7 +59,7 @@ PARAM_DEFINE_FLOAT(VT_TRANS_THR, 0.6f);
  * @max 45.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 10.0f);
 
 /**
  * Fixed wing thrust scale for hover forward flight.

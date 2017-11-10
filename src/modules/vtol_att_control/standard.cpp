@@ -382,7 +382,7 @@ void Standard::update_mc_state()
 	// then the pusher-for-pitch strategy is disabled and we can return
 	// lyu: < 5m don't use push motor
 	if (_params_standard.forward_thrust_scale < FLT_EPSILON ||
-	    !_v_control_mode->flag_control_position_enabled || -(_local_pos->z) < 5.0f) {
+	    !_v_control_mode->flag_control_position_enabled || -(_local_pos->z) < 2.0f) {
 		return;
 	}
 
