@@ -382,7 +382,7 @@ void Standard::update_mc_state()
 	// then the pusher-for-pitch strategy is disabled and we can return
 	// lyu: < 5m don't use push motor
 	if (_params_standard.forward_thrust_scale < FLT_EPSILON ||
-	    !_v_control_mode->flag_control_position_enabled || -(_local_pos->z) < 2.0f) {
+	    !_v_control_mode->flag_control_position_enabled || -(_local_pos->z) < 5.0f) {
 		return;
 	}
 
@@ -412,7 +412,10 @@ void Standard::update_mc_state()
 		// desired roll angle in heading frame stays the same
 		float roll_new = -asinf(body_z_sp(1));
 
-		_pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max))
+		// _pusher_throttle = (sinf(-pitch_forward) - sinf(_params_standard.down_pitch_max))
+		// 		   * _v_att_sp->thrust * _params_standard.forward_thrust_scale;
+		// lyu:
+		_pusher_throttle = (sinf(-pitch_forward))
 				   * _v_att_sp->thrust * _params_standard.forward_thrust_scale;
 
 		// return the vehicle to level position
@@ -474,6 +477,17 @@ void Standard::fill_actuator_outputs()
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = (_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim);	//pitch
 		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
 		// _actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] = _pusher_throttle;
+	} else if (_vtol_schedule.flight_mode == MC_MODE && _params_standard.forward_thrust_scale > FLT_EPSILON) {
+		_actuators_out_0->timestamp = _actuators_mc_in->timestamp;
+		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];	// roll
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	// pitch
+		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	// yaw
+		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];// throttle
+		/* fixed wing controls */
+		_actuators_out_1->timestamp = _actuators_fw_in->timestamp;
+		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];	//roll
+		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = (_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim);	//pitch
+		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
 	} else {
 
 		/* multirotor controls */
