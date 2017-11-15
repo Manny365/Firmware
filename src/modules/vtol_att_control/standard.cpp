@@ -177,16 +177,18 @@ void Standard::update_vtol_state()
 			_mc_throttle_weight = 1.0f;
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
-			// transition to MC mode if transition time has passed
-			// lyu: or if ground speed is lower than mc cruise speed
-			float ground_speed = sqrtf(_local_pos->vx*_local_pos->vx + _local_pos->vy*_local_pos->vy);
-			// velocity decrease to 1/4 of the cruise speed
-			bool velocity_decrease = ground_speed < (_params_standard.xy_cruise*0.25f);
-			// XXX: base this on XY hold velocity of MC
+
+			// transition to MC mode if transition time has passed or forward velocity drops below MPC cruise speed
+			const matrix::Dcmf R_to_body(matrix::Quatf(_v_att->q).inversed());
+			const matrix::Vector3f vel = R_to_body * matrix::Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+			float x_vel = vel(0);
+			// PX4_WARN("x_vel %2.4f",(double)x_vel);
 			if (hrt_elapsed_time(&_vtol_schedule.transition_start) >
-			    (_params_standard.back_trans_dur * 1000000.0f) && velocity_decrease) {
+			    (_params_standard.back_trans_dur * 1000000.0f) ||
+			    (_local_pos->v_xy_valid && x_vel <= _params_standard.xy_cruise)) {
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
+
 		}
 
 		// the pusher motor should never be powered when in or transitioning to mc mode
@@ -329,8 +331,7 @@ void Standard::update_transition_state()
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 
 		// maintain FW_PSP_OFF
-		// lyu: transition back, the pitch_sp is important. We set 5 to decrease the speed
-		_v_att_sp->pitch_body = math::radians(5.0f);
+		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset;
 		matrix::Quatf q_sp(matrix::Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
