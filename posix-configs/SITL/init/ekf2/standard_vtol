@@ -25,7 +25,7 @@ param set EKF2_MAG_TYPE 1
 param set FW_AIRSPD_MAX 25
 param set FW_AIRSPD_MIN 14
 param set FW_AIRSPD_TRIM 16
-param set FW_PSP_OFF 5
+param set FW_PSP_OFF 0
 param set MAV_TYPE 22
 param set MC_PITCH_P 6
 param set MC_PITCHRATE_P 0.15
@@ -34,8 +34,7 @@ param set MC_ROLLRATE_P 0.15
 param set MIS_LTRMIN_ALT 10
 param set MIS_TAKEOFF_ALT 2.5
 param set MIS_YAW_TMT 10
-param set MPC_TILTMAX_AIR 20
-param set MPC_XY_CRUISE 12
+param set MPC_XY_CRUISE 5
 param set MPC_ACC_HOR_MAX 1.0
 param set MPC_TKO_SPEED 1.0
 param set MPC_XY_P 0.8
@@ -60,9 +59,11 @@ param set SYS_RESTART_TYPE 2
 param set VT_ARSP_TRANS 15
 param set VT_MOT_COUNT 4
 param set VT_TRANS_THR 0.75
-param set VT_FWD_THRUST_SC 6
+param set VT_FWD_THRUST_SC 0
 param set VT_DWN_PITCH_MAX 8
 param set VT_TYPE 2
+param set VT_F_TRANS_DUR 2
+param set VT_B_TRANS_DUR 4
 
 replay tryapplyparams
 simulator start -s

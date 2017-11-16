@@ -331,7 +331,8 @@ void Standard::update_transition_state()
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 
 		// maintain FW_PSP_OFF
-		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset;
+		float pitch_up = math::radians(5.0f);
+		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset + pitch_up;
 		matrix::Quatf q_sp(matrix::Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
